@@ -1,42 +1,68 @@
 import { createStore } from 'redux';
-
-const plus = document.getElementById('add');
-const minus = document.getElementById('minus');
-const number = document.querySelector('span');
+const form = document.querySelector('form');
+const input = document.querySelector('input');
+const ul = document.querySelector('ul');
 
 const ADD = 'ADD';
-const MINUS = 'MINUS';
+const DELETE = 'DELETE';
 
-// state를 변경하는 함수
-// countModifier과의 소통을 위한 action이 있다!
-const countModifier = (count = 0, action) => {
-  // return 되는 값이 state가 됨
+const reducer = (state = [], action) => {
+  console.log(action);
+
   switch (action.type) {
     case ADD:
-      return count + 1;
-    case MINUS:
-      return count - 1;
+      const newToDo = { text: action.text, id: Date.now() };
+      return [newToDo, ...state]; // 새로운 배열에 기존의 데이터에서 텍스트를 추가! 제일 중요한 부분!
+    case DELETE:
+      return state.filter((todo) => todo.id !== action.id);
     default:
-      return count;
+      return state;
   }
 };
-number.innerText = 0;
-const countStore = createStore(countModifier);
 
-const onChange = () => {
-  number.innerText = countStore.getState();
+const store = createStore(reducer);
+
+store.subscribe(() => console.log(store.getState()));
+
+const paintToDos = () => {
+  ul.innerHTML = '';
+  const toDos = store.getState();
+  toDos.forEach((todo) => {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.innerText = 'DELETE';
+    btn.addEventListener('click', dispatchDeleteToDo);
+    li.id = todo.id;
+    li.innerText = todo.text;
+    li.appendChild(btn);
+    ul.appendChild(li);
+  });
+};
+store.subscribe(paintToDos);
+
+const addToDo = (text) => {
+  return {
+    type: ADD,
+    text,
+  };
+};
+const dispatchAddToDo = (text) => {
+  store.dispatch(addToDo(text));
 };
 
-// subscribe는 우리에게 store 안에 있는 변화들을 알 수 있게 해줌
-// store의 변화를 감지하는 역할! onChange 함수를 구독하여 변화를 감지할 수 있게 됨
-countStore.subscribe(onChange);
-
-const handleAdd = () => {
-  countStore.dispatch({ type: ADD });
+const deleteToDo = (id) => {
+  return { type: DELETE, id };
 };
-const handleMinus = () => {
-  countStore.dispatch({ type: MINUS });
+const dispatchDeleteToDo = (e) => {
+  const id = parseInt(e.target.parentNode.id);
+  store.dispatch(deleteToDo(id));
 };
 
-plus.addEventListener('click', handleAdd);
-minus.addEventListener('click', handleMinus);
+const onSubmit = (e) => {
+  e.preventDefault();
+  const toDo = input.value; // 입력한 값
+  input.value = '';
+  dispatchAddToDo(toDo);
+};
+
+form.addEventListener('submit', onSubmit);
